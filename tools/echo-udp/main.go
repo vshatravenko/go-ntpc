@@ -59,7 +59,7 @@ func parseAddrFromArgs(args []string) (*net.UDPAddr, error) {
 	components := strings.Split(args[1], ":")
 
 	if len(components) != 2 {
-		return nil, fmt.Errorf("%s does not comply with *ip*:*port* format")
+		return nil, fmt.Errorf("%s does not comply with *ip*:*port* format", args)
 	}
 
 	ip := net.ParseIP(components[0])
