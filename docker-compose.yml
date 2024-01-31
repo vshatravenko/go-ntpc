@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  ntp:
+    image: cturra/ntp
+    environment:
+      LOG_LEVEL: 0 # the most informative level
+      TZ: "America/Toronto"
+    ports:
+      - 123:123/udp
