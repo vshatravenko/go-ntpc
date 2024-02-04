@@ -15,21 +15,20 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:        "ntpc",
-		Description: "Connect to a given NTP server and calculate latency metrics",
+		Name:  "ntpc",
+		Usage: "Connect to a given NTP server and calculate latency metrics",
 		Commands: []*cli.Command{
 			{
-				Name:        "connect",
-				Description: "Exchange two NTP packets with a server and print the clock offset and adjusted time",
-				Action:      connectAction,
+				Name:   "connect",
+				Usage:  "Exchange two NTP packets with a server and print the clock offset and adjusted time",
+				Action: connectAction,
 			},
 			{
-				Name:        "update-systime",
-				Description: "Poll an NTP server, adjusting system time until the clock offset is minimized (dry-run by default)",
-				Action:      updateSystimeAction,
+				Name:   "update-systime",
+				Usage:  "Poll an NTP server, adjusting system time until the clock offset is minimized (dry-run by default)",
+				Action: updateSystimeAction,
 			},
 		},
-		DefaultCommand: "connect",
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -44,7 +43,7 @@ func connectAction(ctx *cli.Context) error {
 		return fmt.Errorf("could not set up the NTP client: %v", err)
 	}
 
-	fmt.Printf("Connecting to %s:%d\n", conf.RemoteHost, conf.RemotePort)
+	fmt.Printf("Connecting to %s:%d, current time: %s\n", conf.RemoteHost, conf.RemotePort, time.Now())
 	res, err := client.Exchange()
 	if err != nil {
 		return fmt.Errorf("NTP exchange failed: %v", err)
@@ -62,26 +61,23 @@ func updateSystimeAction(ctx *cli.Context) error {
 	}
 
 	ticker := time.NewTicker(5 * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			res, err := client.Exchange()
-			if err != nil {
-				fmt.Printf("err: could not exchange NTP packets: %s\n", err)
-				continue
-			}
+	for ; ; <-ticker.C {
+		res, err := client.Exchange()
+		if err != nil {
+			fmt.Printf("err: could not exchange NTP packets: %s\n", err)
+			continue
+		}
 
-			fmt.Printf("current clock offset: %s\n", res.ClockOffset)
+		fmt.Printf("current clock offset: %s\n", res.ClockOffset)
 
-			if abs(int64(res.ClockOffset)) < int64(5*time.Millisecond) {
-				fmt.Println("optimal offset reached, exiting!")
-				return nil
-			}
+		if abs(int64(res.ClockOffset)) < int64(5*time.Millisecond) {
+			fmt.Println("optimal offset reached, exiting!")
+			return nil
+		}
 
-			err = systime.UpdateSysTime(int64(res.ClockOffset), conf.SystimeUpdateEnabled)
-			if err != nil {
-				return fmt.Errorf("system time update failed: %s", err)
-			}
+		err = systime.UpdateSysTime(int64(res.ClockOffset), conf.SystimeUpdateEnabled)
+		if err != nil {
+			fmt.Printf("err: system time update failed: %s", err)
 		}
 	}
 }

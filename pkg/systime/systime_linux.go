@@ -1,6 +1,9 @@
+//go:build linux
+
 package systime
 
 import (
+	"fmt"
 	"syscall"
 )
 
@@ -16,13 +19,15 @@ func UpdateSysTime(delta int64, apply bool) error {
 	}
 
 	sec := delta / nanoPerSec
-	usec := int32((delta - sec*nanoPerSec) / 1000)
+	usec := (delta - sec*nanoPerSec) / 1000
 
 	tv.Sec += sec
 	tv.Usec += usec
 
 	if apply {
 		return syscall.Settimeofday(tv)
+	} else {
+		fmt.Printf("dry-run is enabled, skipping systime update")
 	}
 
 	return nil
